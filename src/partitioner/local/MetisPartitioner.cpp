@@ -93,6 +93,8 @@ void MetisPartitioner::loadDataSet(string inputFilePath, string outputFilePath) 
         }
     }
 
+    constructMetisFormat();
+
 }
 
 void MetisPartitioner::constructMetisFormat() {
@@ -133,6 +135,7 @@ void MetisPartitioner::partitionGraph() {
     /*for(unsigned part_i = 0; part_i < vertexCount; part_i++){
         std::cout << part_i << " " << part[part_i] << std::endl;
     }*/
+    createPartitionFiles(part);
 }
 
 void MetisPartitioner::createPartitionFiles(idx_t *part) {
@@ -176,8 +179,8 @@ void MetisPartitioner::createPartitionFiles(idx_t *part) {
     }
 
     for (int part = 0;part<nParts;part++) {
-        string outputFilePart = outputFilePath+std::to_string(part);
-        string outputFilePartMaster = outputFilePath+std::to_string(part);
+        string outputFilePart = outputFilePath+"local"+std::to_string(part);
+        string outputFilePartMaster = outputFilePath+"master"+std::to_string(part);
 
         std::map<int,std::set<int>> partEdgeMap = partitionedLocalGraphStorageMap[part];
         std::map<int,std::set<int>> partMasterEdgeMap = masterGraphStorageMap[part];
@@ -211,7 +214,7 @@ void MetisPartitioner::createPartitionFiles(idx_t *part) {
                     std::set<int> destinationSet = partMasterEdgeMap[vertex];
                     if (!destinationSet.empty()) {
                         for (std::set<int>::iterator itr = destinationSet.begin(); itr != destinationSet.end(); ++itr) {
-                            string edge = vertex + " " + (*itr);
+                            string edge = std::to_string(vertex) + " " + std::to_string((*itr));
                             masterFile<<edge;
                             masterFile<<"\n";
 

@@ -16,6 +16,7 @@ limitations under the License.
 #include <unistd.h>
 #include "main.h"
 
+
 unsigned int microseconds = 10000000;
 JasmineGraphServer* server;
 
@@ -27,7 +28,7 @@ void fnExit3 (void)
 
 
 int main() {
-    atexit(fnExit3);
+    /*atexit(fnExit3);
     server = new JasmineGraphServer();
     server->run();
 
@@ -36,7 +37,10 @@ int main() {
         usleep(microseconds);
     }
 
-    delete server;
+    delete server;*/
+    MetisPartitioner* partitioner = new MetisPartitioner();
+    partitioner->loadDataSet("/home/chinthaka/research/dataset/simpledataset/simple_graph.dl","/home/chinthaka/research/dataset/output/");
+    partitioner->partitionGraph();
     return 0;
 }
 
