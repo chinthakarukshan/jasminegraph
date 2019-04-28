@@ -25,3 +25,5 @@ const string ERROR = "error";
 const string ADD_STREAM_KAFKA = "adstrmk";
 const string STREAM_TOPIC_NAME = "topicnm";
 const string REFORMAT = "reformat";
+const string TRIANGLES = "trian";
+const string GRAPHID_SEND = "graphid-send";
