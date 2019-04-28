@@ -64,6 +64,7 @@ extern const string ADD_STREAM_KAFKA;
 extern const string STRM_ACK;
 extern const string ADD_STREAM_KAFKA;
 extern const string STREAM_TOPIC_NAME;
+extern const string TRIANGLES;
 
 
 class JasminGraphFrontEndProtocol {
