@@ -328,7 +328,6 @@ void *frontendservicesesion(void *dummyPt) {
                      << msg.get_offset() << endl;
                 cout << "Payload = " << msg.get_payload() << endl;
             }
-
         } else if (line.compare(RMGR) == 0){
             write(connFd, SEND.c_str(), FRONTEND_COMMAND_LENGTH);
             write(connFd, "\r\n", 2);
