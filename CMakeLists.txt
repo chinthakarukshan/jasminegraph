@@ -25,12 +25,15 @@ add_executable(JasmineGraph main.cpp src/server/JasmineGraphServer.cpp src/serve
         src/server/JasmineGraphInstanceProtocol.h src/server/JasmineGraphInstanceFileTransferService.cpp src/server/JasmineGraphInstanceFileTransferService.h
         src/server/JasmineGraphInstanceService.cpp src/server/JasmineGraphInstanceService.h
         src/partitioner/local/RDFParser.cpp src/partitioner/local/RDFParser.h
-        src/server/JasmineGraphInstanceService.cpp src/server/JasmineGraphInstanceService.h src/util/PlacesToNodeMapper.cpp src/util/PlacesToNodeMapper.h)
+        src/server/JasmineGraphInstanceService.cpp src/server/JasmineGraphInstanceService.h src/util/PlacesToNodeMapper.cpp src/util/PlacesToNodeMapper.h
+        src/localstore/JasmineGraphLocalStoreFactory.cpp src/localstore/JasmineGraphLocalStoreFactory.h src/query/algorithm/triangles/Triangles.cpp src/query/algorithm/triangles/Triangles.h
+        src/centralstore/JasmineGraphHashMapCentralStore.cpp src/centralstore/JasmineGraphHashMapCentralStore.h)
 
 #file(GLOB_RECURSE Dir1_Sources "*.cpp")
 #add_executable(JesminGraph ${Dir1_Sources})
 
 #target_link_libraries(JasmineGraph /usr/local/lib/libmetis.so)
+#target_link_libraries(JasmineGraph /usr/local/lib/libxerces-c-3.2.so)
 #TODO: Need to install the library separately
 target_link_libraries(JasmineGraph /usr/local/lib/libmetis.a)
 target_link_libraries(JasmineGraph /opt/lib/libxerces-c.a)
