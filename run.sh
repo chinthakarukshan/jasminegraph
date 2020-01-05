@@ -56,4 +56,4 @@ mkdir -p logs
 
 cd $JASMINEGRAPH_DIR
 
-./JasmineGraph $MODE $HOST_NAME $SERVER_PORT $SERVER_DATA_PORT
+./JasmineGraph "native" $MODE $HOST_NAME $SERVER_PORT $SERVER_DATA_PORT
