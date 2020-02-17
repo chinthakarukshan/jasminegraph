@@ -52,6 +52,7 @@ void *frontendservicesesion(void *dummyPt) {
     frontendservicesessionargs *sessionargs = (frontendservicesessionargs *) dummyPt;
     frontend_logger.log("Thread No: " + to_string(pthread_self()), "info");
     int connFd = sessionargs->connFd;
+    std::string masterIP = sessionargs->masterIP;
     char data[FRONTEND_DATA_LENGTH];
     bzero(data, FRONTEND_DATA_LENGTH + 1);
     bool loop = false;
@@ -145,7 +146,7 @@ void *frontendservicesesion(void *dummyPt) {
                 metisPartitioner->constructMetisFormat(Conts::GRAPH_TYPE_RDF);
                 fullFileList = metisPartitioner->partitioneWithGPMetis();
                 JasmineGraphServer *jasmineServer = new JasmineGraphServer();
-                jasmineServer->uploadGraphLocally(newGraphID, Conts::GRAPH_WITH_ATTRIBUTES, fullFileList);
+                jasmineServer->uploadGraphLocally(newGraphID, Conts::GRAPH_WITH_ATTRIBUTES, fullFileList,masterIP);
                 utils.deleteDirectory(utils.getHomeDir() + "/.jasminegraph/tmp/" + to_string(newGraphID));
                 utils.deleteDirectory("/tmp/" + std::to_string(newGraphID));
                 JasmineGraphFrontEnd::getAndUpdateUploadTime(to_string(newGraphID), dummyPt);
@@ -215,7 +216,7 @@ void *frontendservicesesion(void *dummyPt) {
                     fullFileList = partitioner->partitioneWithGPMetis();
                 }
                 frontend_logger.log("Upload done", "info");
-                jasmineServer->uploadGraphLocally(newGraphID, Conts::GRAPH_TYPE_NORMAL, fullFileList);
+                jasmineServer->uploadGraphLocally(newGraphID, Conts::GRAPH_TYPE_NORMAL, fullFileList, masterIP);
                 utils.deleteDirectory(utils.getHomeDir() + "/.jasminegraph/tmp/" + to_string(newGraphID));
                 JasmineGraphFrontEnd::getAndUpdateUploadTime(to_string(newGraphID), dummyPt);
             } else {
@@ -315,7 +316,7 @@ void *frontendservicesesion(void *dummyPt) {
                 }
                 //Graph type should be changed to identify graphs with attributes
                 //because this graph type has additional attribute files to be uploaded
-                jasmineServer->uploadGraphLocally(newGraphID, Conts::GRAPH_WITH_ATTRIBUTES, fullFileList);
+                jasmineServer->uploadGraphLocally(newGraphID, Conts::GRAPH_WITH_ATTRIBUTES, fullFileList, masterIP);
                 utils.deleteDirectory(utils.getHomeDir() + "/.jasminegraph/tmp/" + to_string(newGraphID));
                 utils.deleteDirectory("/tmp/" + std::to_string(newGraphID));
                 JasmineGraphFrontEnd::getAndUpdateUploadTime(to_string(newGraphID), dummyPt);
@@ -387,7 +388,7 @@ void *frontendservicesesion(void *dummyPt) {
 
             if (JasmineGraphFrontEnd::graphExistsByID(graphID, dummyPt)) {
                 frontend_logger.log("Graph with ID " + graphID + " is being deleted now", "info");
-                JasmineGraphFrontEnd::removeGraph(graphID, dummyPt);
+                JasmineGraphFrontEnd::removeGraph(graphID, dummyPt, masterIP);
             } else {
                 frontend_logger.log("Graph does not exist or cannot be deleted with the current hosts setting",
                                     "error");
@@ -455,7 +456,7 @@ void *frontendservicesesion(void *dummyPt) {
                 auto begin = chrono::high_resolution_clock::now();
                 vector<string> hostsList = utils.getHostList();
                 int hostListLength = hostsList.size();
-                long triangleCount = JasmineGraphFrontEnd::countTriangles(graph_id,dummyPt);
+                long triangleCount = JasmineGraphFrontEnd::countTriangles(graph_id,dummyPt,masterIP);
                 auto end = chrono::high_resolution_clock::now();
                 auto dur = end - begin;
                 auto msDuration = std::chrono::duration_cast<std::chrono::milliseconds>(dur).count();
@@ -592,7 +593,7 @@ void *frontendservicesesion(void *dummyPt) {
                 if (utils.fileExists(path)) {
                     std::cout << "Path exists" << endl;
                     JasminGraphLinkPredictor *jasminGraphLinkPredictor = new JasminGraphLinkPredictor();
-                    jasminGraphLinkPredictor->initiateLinkPrediction(graphID, path);
+                    jasminGraphLinkPredictor->initiateLinkPrediction(graphID, path, masterIP);
                 } else {
                     frontend_logger.log("Graph edge file does not exist on the specified path", "error");
                     continue;
@@ -611,8 +612,9 @@ void *frontendservicesesion(void *dummyPt) {
     close(connFd);
 }
 
-JasmineGraphFrontEnd::JasmineGraphFrontEnd(SQLiteDBInterface db) {
+JasmineGraphFrontEnd::JasmineGraphFrontEnd(SQLiteDBInterface db, std::string masterIP) {
     this->sqlite = db;
+    this->masterIP = masterIP;
 }
 
 int JasmineGraphFrontEnd::run() {
@@ -675,6 +677,7 @@ int JasmineGraphFrontEnd::run() {
         struct frontendservicesessionargs frontendservicesessionargs1;
         frontendservicesessionargs1.sqlite = this->sqlite;
         frontendservicesessionargs1.connFd = connFd;
+        frontendservicesessionargs1.masterIP = masterIP;
 
 
         pthread_create(&threadA[noThread], NULL, frontendservicesesion,
@@ -733,7 +736,7 @@ bool JasmineGraphFrontEnd::graphExistsByID(string id, void *dummyPt) {
 /**
  * This method removes a graph from JasmineGraph
  */
-void JasmineGraphFrontEnd::removeGraph(std::string graphID, void *dummyPt) {
+void JasmineGraphFrontEnd::removeGraph(std::string graphID, void *dummyPt, std::string masterIP) {
     vector<pair<string, string>> hostHasPartition;
     SQLiteDBInterface *sqlite = (SQLiteDBInterface *) dummyPt;
     vector<vector<pair<string, string>>> hostPartitionResults = sqlite->runSelect(
@@ -761,7 +764,7 @@ void JasmineGraphFrontEnd::removeGraph(std::string graphID, void *dummyPt) {
                       " WHERE idgraph = " + graphID);
 
     JasmineGraphServer *jasmineServer = new JasmineGraphServer();
-    jasmineServer->removeGraph(hostHasPartition, graphID);
+    jasmineServer->removeGraph(hostHasPartition, graphID, masterIP);
 
     sqlite->runUpdate("DELETE FROM host_has_partition WHERE partition_graph_idgraph = " + graphID);
     sqlite->runUpdate("DELETE FROM partition WHERE graph_idgraph = " + graphID);
@@ -788,7 +791,7 @@ bool JasmineGraphFrontEnd::isGraphActiveAndTrained(std::string graphID, void *du
     return result;
 }
 
-long JasmineGraphFrontEnd::countTriangles(std::string graphId, void *dummyPt) {
+long JasmineGraphFrontEnd::countTriangles(std::string graphId, void *dummyPt, std::string masterIP) {
     long result= 0;
     Utils utils;
     vector<std::string> hostList = utils.getHostList();
@@ -848,9 +851,9 @@ long JasmineGraphFrontEnd::countTriangles(std::string graphId, void *dummyPt) {
                 partitionList.erase(partitionList.begin());
             }
 
-            intermRes.push_back(std::async(std::launch::async,JasmineGraphFrontEnd::getTriangleCount,atoi(graphId.c_str()),host,port,atoi(partitionId.c_str())));
+            intermRes.push_back(std::async(std::launch::async,JasmineGraphFrontEnd::getTriangleCount,atoi(graphId.c_str()),host,port,atoi(partitionId.c_str()),masterIP));
             if (!(aggregatorWorkerHost == host && aggregatorWorkerPort == std::to_string(port))) {
-                remoteCopyRes.insert(std::make_pair(host,std::async(std::launch::async, JasmineGraphFrontEnd::copyCentralStoreToAggregator, aggregatorWorkerHost,aggregatorWorkerPort,host,std::to_string(port),atoi(graphId.c_str()),atoi(partitionId.c_str()))));
+                remoteCopyRes.insert(std::make_pair(host,std::async(std::launch::async, JasmineGraphFrontEnd::copyCentralStoreToAggregator, aggregatorWorkerHost,aggregatorWorkerPort,host,std::to_string(port),atoi(graphId.c_str()),atoi(partitionId.c_str()),masterIP)));
             } else {
                 aggregatorPartitionId = partitionId;
             }
@@ -866,13 +869,13 @@ long JasmineGraphFrontEnd::countTriangles(std::string graphId, void *dummyPt) {
 
 
 
-    long aggregatedTriangleCount = JasmineGraphFrontEnd::countCentralStoreTriangles(aggregatorWorkerHost,aggregatorWorkerPort,aggregatorWorker,aggregatorPartitionId,graphId);
+    long aggregatedTriangleCount = JasmineGraphFrontEnd::countCentralStoreTriangles(aggregatorWorkerHost,aggregatorWorkerPort,aggregatorWorker,aggregatorPartitionId,graphId,masterIP);
     result += aggregatedTriangleCount;
     return result;
 }
 
 
-long JasmineGraphFrontEnd::getTriangleCount(int graphId, std::string host, int port, int partitionId) {
+long JasmineGraphFrontEnd::getTriangleCount(int graphId, std::string host, int port, int partitionId, std::string masterIP) {
 
     int sockfd;
     char data[300];
@@ -920,9 +923,8 @@ long JasmineGraphFrontEnd::getTriangleCount(int graphId, std::string host, int p
 
     if (response.compare(JasmineGraphInstanceProtocol::HANDSHAKE_OK) == 0) {
         frontend_logger.log("Received : " + JasmineGraphInstanceProtocol::HANDSHAKE_OK, "info");
-        string server_host = utils.getJasmineGraphProperty("org.jasminegraph.server.host");
-        write(sockfd, server_host.c_str(), server_host.size());
-        frontend_logger.log("Sent : " + server_host, "info");
+        write(sockfd, masterIP.c_str(), masterIP.size());
+        frontend_logger.log("Sent : " + masterIP, "info");
 
         write(sockfd, JasmineGraphInstanceProtocol::TRIANGLES.c_str(),
               JasmineGraphInstanceProtocol::TRIANGLES.size());
@@ -964,7 +966,7 @@ long JasmineGraphFrontEnd::getTriangleCount(int graphId, std::string host, int p
 
 std::string JasmineGraphFrontEnd::copyCentralStoreToAggregator(std::string aggregatorHostName,
                                                                std::string aggregatorPort, std::string host,
-                                                               std::string port, int graphId, int partitionId) {
+                                                               std::string port, int graphId, int partitionId, std::string masterIP) {
     int sockfd;
     char data[300];
     bool loop = false;
@@ -1011,9 +1013,8 @@ std::string JasmineGraphFrontEnd::copyCentralStoreToAggregator(std::string aggre
 
     if (response.compare(JasmineGraphInstanceProtocol::HANDSHAKE_OK) == 0) {
         frontend_logger.log("Received : " + JasmineGraphInstanceProtocol::HANDSHAKE_OK, "info");
-        string server_host = utils.getJasmineGraphProperty("org.jasminegraph.server.host");
-        write(sockfd, server_host.c_str(), server_host.size());
-        frontend_logger.log("Sent : " + server_host, "info");
+        write(sockfd, masterIP.c_str(), masterIP.size());
+        frontend_logger.log("Sent : " + masterIP, "info");
 
         write(sockfd, JasmineGraphInstanceProtocol::SEND_CENTRALSTORE_TO_AGGREGATOR.c_str(),
               JasmineGraphInstanceProtocol::SEND_CENTRALSTORE_TO_AGGREGATOR.size());
@@ -1084,7 +1085,7 @@ std::string JasmineGraphFrontEnd::copyCentralStoreToAggregator(std::string aggre
 }
 
 
-long JasmineGraphFrontEnd::countCentralStoreTriangles(std::string aggregatorHostName, std::string aggregatorPort, std::string host, std::string partitionId, std::string graphId) {
+long JasmineGraphFrontEnd::countCentralStoreTriangles(std::string aggregatorHostName, std::string aggregatorPort, std::string host, std::string partitionId, std::string graphId, std::string masterIP) {
     int sockfd;
     char data[300];
     bool loop = false;
@@ -1131,9 +1132,8 @@ long JasmineGraphFrontEnd::countCentralStoreTriangles(std::string aggregatorHost
 
     if (response.compare(JasmineGraphInstanceProtocol::HANDSHAKE_OK) == 0) {
         frontend_logger.log("Received : " + JasmineGraphInstanceProtocol::HANDSHAKE_OK, "info");
-        string server_host = utils.getJasmineGraphProperty("org.jasminegraph.server.host");
-        write(sockfd, server_host.c_str(), server_host.size());
-        frontend_logger.log("Sent : " + server_host, "info");
+        write(sockfd, masterIP.c_str(), masterIP.size());
+        frontend_logger.log("Sent : " + masterIP, "info");
 
         write(sockfd, JasmineGraphInstanceProtocol::AGGREGATE_CENTRALSTORE_TRIANGLES.c_str(),
               JasmineGraphInstanceProtocol::AGGREGATE_CENTRALSTORE_TRIANGLES.size());
