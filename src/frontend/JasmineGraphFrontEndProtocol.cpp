@@ -32,3 +32,4 @@ const string VCOUNT= "vcnt";
 const string ECOUNT= "ecnt";
 const string TRAIN = "train";
 const string PREDICT = "predict";
+const string PARTITIONS = "number-of-partitions";
