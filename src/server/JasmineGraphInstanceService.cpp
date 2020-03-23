@@ -983,7 +983,7 @@ void writeCatalogRecord(string record) {
 long countLocalTriangles(std::string graphId, std::string partitionId, std::map<std::string,JasmineGraphHashMapLocalStore> graphDBMapLocalStores, std::map<std::string,JasmineGraphHashMapCentralStore> graphDBMapCentralStores) {
     long result;
 
-
+    instance_logger.log("###INSTANCE### Local Triangle Count : Started", "info");
     std::string graphIdentifier = graphId + "_" + partitionId;
     std::string centralGraphIdentifier = graphId + +"_centralstore_"+ partitionId;
     JasmineGraphHashMapLocalStore graphDB;
@@ -1013,6 +1013,8 @@ long countLocalTriangles(std::string graphId, std::string partitionId, std::map<
 
     result = Triangles::run(graphDB,centralGraphDB,graphId,partitionId);
 
+    instance_logger.log("###INSTANCE### Local Triangle Count : Completed: Triangles: " + to_string(result), "info");
+
     return result;
 
 }
@@ -1040,12 +1042,14 @@ bool JasmineGraphInstanceService::isInstanceCentralStoreExists(std::string graph
 }
 
 void JasmineGraphInstanceService::loadLocalStore(std::string graphId, std::string partitionId, std::map<std::string,JasmineGraphHashMapLocalStore>& graphDBMapLocalStores) {
+    instance_logger.log("###INSTANCE### Loading Local Store : Started", "info");
     std::string graphIdentifier = graphId + "_"+partitionId;
     Utils utils;
     std::string folderLocation = utils.getJasmineGraphProperty("org.jasminegraph.server.instance.datafolder");
     JasmineGraphHashMapLocalStore  *jasmineGraphHashMapLocalStore = new JasmineGraphHashMapLocalStore(atoi(graphId.c_str()),atoi(partitionId.c_str()), folderLocation);
     jasmineGraphHashMapLocalStore->loadGraph();
     graphDBMapLocalStores.insert(std::make_pair(graphIdentifier,*jasmineGraphHashMapLocalStore));
+    instance_logger.log("###INSTANCE### Loading Local Store : Completed", "info");
 }
 
 void JasmineGraphInstanceService::loadInstanceCentralStore(std::string graphId, std::string partitionId,
